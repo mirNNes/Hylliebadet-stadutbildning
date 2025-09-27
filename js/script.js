@@ -1,40 +1,65 @@
-// Texten som ska skrivas rad för rad
-const textLines = [
-  "Städrummet – Viktig startpunkt i våra rutiner",
-  "Städrummet är där vi börjar och avslutar arbetsdagen, så det är viktigt att du känner till rutinerna och hur allt fungerar.",
-  "Utrymmet: Själva städrummet är litet, därför är det extra viktigt att bara nödvändiga saker finns där.",
-  "Utrustning i städrummet: Tvättmaskin – för smutsiga moppar och mikrodukar, Torktumlare – för att torka moppar och dukar, Tre städvagnar – används i den dagliga verksamheten, Singelskurmaskiner, Kombiskurmaskiner, Rena moppar och mikrodukar.",
-  "Städförråd (vänster om städrummet): Här finns städmaterial, redskap och diverse saker som används dagligen.",
-  "Förråd (höger om städrummet): Maskiner som används mer sällan, terasstvätt/högtryckstvätt, ångmaskiner i olika storlekar, reservdelar.",
-  "Om du letar efter något extra, som duschslang, tvål- eller papperdispenser eller toalettspolknapp – så finns det ofta här.",
-  "Rutiner: Lämna alltid tillbaka saker du har använt på rätt plats, rengör städmaskiner och redskap efter användning, fråga kollega om du är osäker, sätt maskiner på laddning efter användning."
-];
+import { typeWriter } from './typewriter.js';
 
-// Typwriter-funktion
-function typeWriter(containerId, lines, delay = 500) {
-  const container = document.getElementById(containerId);
-  if (!container) return; // skyddar mot null
-  let i = 0;
+function loadSection(sectionJson, quizJson) {
+  // Ladda text + bilder
+  fetch(sectionJson)
+    .then(res => res.json())
+    .then(data => typeWriter("text-container", data, 700));
 
-  function showLine() {
-    if (i < lines.length) {
-      const p = document.createElement("p");
-      container.appendChild(p);
+  // Ladda quiz
+  fetch(quizJson)
+    .then(res => res.json())
+    .then(data => renderQuiz(data));
+}
 
-      let charIndex = 0;
-      function typeChar() {
-        if (charIndex < lines[i].length) {
-          p.innerHTML += lines[i][charIndex];
-          charIndex++;
-          setTimeout(typeChar, 15);
-        } else {
-          i++;
-          setTimeout(showLine, delay);
-        }
-      }
-      typeChar();
-    }
+function renderQuiz(quizData) {
+  const container = document.getElementById("quiz-container");
+  const result = document.getElementById("quizResult");
+  container.innerHTML = "";
+
+  quizData.forEach((q, index) => {
+    const div = document.createElement("div");
+    div.classList.add("quiz-question");
+
+    const p = document.createElement("p");
+    p.textContent = q.question;
+    div.appendChild(p);
+
+    q.options.forEach(opt => {
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "q" + index;
+      input.value = opt.correct ? "ratt" : "fel";
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(" " + opt.text));
+      div.appendChild(label);
+      div.appendChild(document.createElement("br"));
+    });
+
+    container.appendChild(div);
+  });
+
+  const btn = document.createElement("button");
+  btn.textContent = "Kontrollera svar";
+  btn.onclick = () => checkQuiz(quizData.length);
+  container.appendChild(btn);
+}
+
+function checkQuiz(totalQuestions) {
+  const container = document.getElementById("quiz-container");
+  const result = document.getElementById("quizResult");
+  let correctCount = 0;
+
+  for (let i = 0; i < totalQuestions; i++) {
+    const selected = container.querySelector(`input[name="q${i}"]:checked`);
+    if (selected && selected.value === "ratt") correctCount++;
   }
 
-  showLine();
+  result.textContent = correctCount === totalQuestions 
+    ? "Allt rätt! Du kan gå vidare." 
+    : `Du fick ${correctCount} av ${totalQuestions} rätt. Försök igen.`;
 }
+
+loadSection("sections/intro.json", "js/quizzes/quiz-intro.json");
+
